@@ -21,7 +21,7 @@ local splashtextinclude = "/usr/lib/luci-splash/splashtextinclude.html"
 f = SimpleForm("splashtext", translate("Edit the complete splash text"),
 	translate("You can enter your own text that is displayed to clients here.<br />" ..
 	"It is possible to use the following markers: " ..
-	"###COMMUNITY###, ###COMMUNITY_URL###, ###CONTACTURL###, ###LEASETIME###, ###LIMIT### and ###ACCEPT###."))
+	"###HOMEPAGE###, ###LEASETIME###, ###LIMIT### and ###ACCEPT###."))
 
 t = f:field(TextValue, "text")
 t.rmempty = true

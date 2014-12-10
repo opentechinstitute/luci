@@ -243,14 +243,14 @@ start() {
 	$IPT -t nat -A luci_splash_leases -p tcp --dport 80 -j REDIRECT --to-ports 8082
 
 	### Add interface independant forwarding rules
+	### Commotion edit: only block tcp port 80 traffic
 	$IPT -t filter -A luci_splash_forwarding -j luci_splash_filter
-	$IPT -t filter -A luci_splash_filter -p tcp -j REJECT --reject-with tcp-reset
-	$IPT -t filter -A luci_splash_filter -j REJECT --reject-with icmp-net-prohibited
+	$IPT -t filter -A luci_splash_filter -p tcp --dport 80 -j REJECT --reject-with tcp-reset
 
 	if [ "$HAS_IPV6" = 1 ]; then
+		### Commotion edit: only block tcp port 80 traffic
 		$IPT6 -t filter -A luci_splash_forwarding -j luci_splash_filter
-		$IPT6 -t filter -A luci_splash_filter -p tcp -j REJECT --reject-with tcp-reset
-		$IPT6 -t filter -A luci_splash_filter -j REJECT --reject-with adm-prohibited
+		$IPT6 -t filter -A luci_splash_filter -p tcp --dport 80 -j REJECT --reject-with tcp-reset
 	fi
 
 	### Add QoS chain
@@ -269,6 +269,11 @@ start() {
 	### Build the main and portal rule
 	config_foreach iface_add iface
 	config_foreach subnet_add subnet
+	
+	### Allow unfiltered traffic to the entire Commotion mesh
+	$IPT -t nat    -I luci_splash_prerouting -d "10.0.0.0/8" -j RETURN
+	$IPT -t filter -I luci_splash_forwarding -d "169.254.0.0/16" -j RETURN
+	$IPT -t filter -I luci_splash_forwarding -d "100.64.0.0/10" -j RETURN
 
 	### Add the community homepage to the list of allowed destination subnets
 	hp=$(uci -q get freifunk.community.homepage) && {

@@ -25,6 +25,12 @@ end
 
 function action_dispatch()
 	local uci = luci.model.uci.cursor_state()
+	local autoauth = uci:get("luci_splash", "general", "autoauth")
+	if autoauth and autoauth == "1" then
+		action_activate(true)
+		return
+	end
+	
 	local mac = luci.sys.net.ip4mac(luci.http.getenv("REMOTE_ADDR")) or ""
 	local access = false
 
@@ -50,12 +56,12 @@ function blacklist()
 	return leased_macs
 end
 
-function action_activate()
+function action_activate(is_immediate)
 	local ip = luci.http.getenv("REMOTE_ADDR") or "127.0.0.1"
 	local mac = luci.sys.net.ip4mac(ip:match("^[\[::ffff:]*(%d+.%d+%.%d+%.%d+)\]*$"))
 	local uci_state = require "luci.model.uci".cursor_state()
 	local blacklisted = false
-	if mac and luci.http.formvalue("accept") then
+	if mac and (luci.http.formvalue("internet") or luci.http.formvalue("apps") or is_immediate) then
 		uci:foreach("luci_splash", "blacklist",
         	        function(s) if s.mac:lower() == mac or s.mac == mac then blacklisted = true end
 	        end)
@@ -63,11 +69,14 @@ function action_activate()
 			luci.http.redirect(luci.dispatcher.build_url("splash" ,"blocked"))
 		else
 			local redirect_url = uci:get("luci_splash", "general", "redirect_url")
+			if luci.http.formvalue("apps") then
+				redirect_url = luci.dispatcher.build_url("apps")
+			end
 			if not redirect_url then
 				redirect_url = uci_state:get("luci_splash_locations", mac:gsub(':', ''):lower(), "location")
 			end
 			if not redirect_url then
-				redirect_url = luci.model.uci.cursor():get("freifunk", "community", "homepage") or 'http://www.freifunk.net'
+				redirect_url = 'https://commotionwireless.net'
 			end
 			remove_redirect(mac:gsub(':', ''):lower())
 			os.execute("luci-splash lease "..mac.." >/dev/null 2>&1")

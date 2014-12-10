@@ -19,6 +19,8 @@ s:option(Value, "leasetime", translate("Clearance time"), translate("Clients tha
 local redir = s:option(Value, "redirect_url", translate("Redirect target"), translate("Clients are redirected to this page after they have accepted the splash. If this is left empty they are redirected to the page they had requested."))
 redir.rmempty = true
 
+s:option(Flag, "autoauth", translate("Immediately Authenticate"), translate("If this is checked, clients will be immediately directed to their original request or the page set in \"Redirect Target\" above, instead of being shown the splash."))
+
 s:option(Value, "limit_up", translate("Upload limit"), translate("Clients upload speed is limited to this value (kbyte/s)"))
 s:option(Value, "limit_down", translate("Download limit"), translate("Clients download speed is limited to this value (kbyte/s)"))
 

@@ -17,8 +17,13 @@ $Id$
 
 <form method="get" action="<%=controller%>/splash/activate">
 	<p>
-		<input type="submit" value="<%:Decline%>" />
-		<input type="submit" name="accept" value="<%:Accept%>" />
+	<%-
+	require "luci.model.ipkg"
+	if luci.model.ipkg.installed("luci-commotion-apps") then
+	-%>
+		<input type="submit" name="apps" value="<%:Local Applications%>" />
+	<%- end -%>
+		<input type="submit" name="internet" value="<%:Internet%>" />
 	</p>
 </form>
 
