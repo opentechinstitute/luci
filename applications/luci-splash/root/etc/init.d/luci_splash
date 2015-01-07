@@ -271,7 +271,10 @@ start() {
 	config_foreach subnet_add subnet
 	
 	### Allow unfiltered traffic to the entire Commotion mesh
-	$IPT -t nat    -I luci_splash_prerouting -d "10.0.0.0/8" -j RETURN
+	$IPT -t nat -I luci_splash_prerouting -d "10.0.0.0/8" -j RETURN
+	$IPT -t nat -I luci_splash_prerouting -d "169.254.0.0/16" -j RETURN
+	$IPT -t nat -I luci_splash_prerouting -d "100.64.0.0/10" -j RETURN
+	$IPT -t filter -I luci_splash_forwarding -d "10.0.0.0/8" -j RETURN
 	$IPT -t filter -I luci_splash_forwarding -d "169.254.0.0/16" -j RETURN
 	$IPT -t filter -I luci_splash_forwarding -d "100.64.0.0/10" -j RETURN
 
