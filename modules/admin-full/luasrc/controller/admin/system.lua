@@ -185,6 +185,14 @@ function action_flashops()
 	local restore_cmd = "tar -xzC/ >/dev/null 2>&1"
 	local backup_cmd  = "sysupgrade --create-backup - 2>/dev/null"
 	local image_tmp   = "/tmp/firmware.img"
+	
+	local non_numeric = false
+	local f = assert(io.open("/etc/openwrt_version", "r"))
+	local current_version = f:read("*all")
+	f:close()
+	if not current_version:match("^%d+%.%d+$") and not current_version:match("^%d+$") then
+		non_numeric = true
+	end
 
 	local function image_supported()
 		-- XXX: yay...
@@ -222,6 +230,14 @@ function action_flashops()
 		return size
 	end
 
+	local function run_upgrade(keep)
+		luci.template.render("admin_system/applyreboot", {
+			title = luci.i18n.translate("Flashing..."),
+			msg   = luci.i18n.translate("The system is flashing now.<br /> DO NOT POWER OFF THE DEVICE!<br /> Wait a few minutes before you try to reconnect. It might be necessary to renew the address of your computer to reach the device again, depending on your settings."),
+			addr  = (#keep > 0) and "192.168.1.1" or nil
+		})
+		fork_exec("killall dropbear uhttpd; sleep 1; /sbin/sysupgrade %s %q" %{ keep, image_tmp })
+	end
 
 	local fp
 	luci.http.setfilehandler(
@@ -265,14 +281,30 @@ function action_flashops()
 		-- Initiate firmware flash
 		--
 		local step = tonumber(luci.http.formvalue("step") or 1)
+		local upgrade_cmd = "/sbin/commotion-upgrade"
+		if non_numeric then
+			upgrade_cmd = upgrade_cmd .. " -g"
+		end
 		if step == 1 then
 			if image_supported() then
-				luci.template.render("admin_system/upgrade", {
-					checksum = image_checksum(),
-					storage  = storage_size(),
-					size     = nixio.fs.stat(image_tmp).size,
-					keep     = (not not luci.http.formvalue("keep"))
-				})
+				local co_valid = luci.sys.call(upgrade_cmd .. " --verify-sig " .. image_tmp .. " &> /dev/null")
+				if co_valid == 1 or co_valid == 2 then
+					nixio.fs.unlink(image_tmp)
+					luci.template.render("admin_system/flashops", {
+						reset_avail   = reset_avail,
+						upgrade_avail = upgrade_avail,
+						co_error      = true
+					})
+				else
+					luci.template.render("admin_system/upgrade", {
+						checksum = image_checksum(),
+						storage  = storage_size(),
+						size     = nixio.fs.stat(image_tmp).size,
+						keep     = (not not luci.http.formvalue("keep")),
+						non_numeric   = non_numeric,
+						co_valid = co_valid
+					})
+				end
 			else
 				nixio.fs.unlink(image_tmp)
 				luci.template.render("admin_system/flashops", {
@@ -286,12 +318,27 @@ function action_flashops()
 		--
 		elseif step == 2 then
 			local keep = (luci.http.formvalue("keep") == "1") and "" or "-n"
-			luci.template.render("admin_system/applyreboot", {
-				title = luci.i18n.translate("Flashing..."),
-				msg   = luci.i18n.translate("The system is flashing now.<br /> DO NOT POWER OFF THE DEVICE!<br /> Wait a few minutes before you try to reconnect. It might be necessary to renew the address of your computer to reach the device again, depending on your settings."),
-				addr  = (#keep > 0) and "192.168.1.1" or nil
-			})
-			fork_exec("killall dropbear uhttpd; sleep 1; /sbin/sysupgrade %s %q" %{ keep, image_tmp })
+			if (#keep > 0) then
+				run_upgrade(keep)
+			else
+				local co_upgrade = luci.sys.call(upgrade_cmd .. " " .. image_tmp .. " &> /dev/null")
+				if co_upgrade == 0 then
+					run_upgrade(keep)
+				else
+					local upgrade_log
+					local f = io.open("/tmp/commotion-upgrade/log", "r")
+					if f then
+						upgrade_log = f:read("*all")
+						f:close()
+					end
+					luci.template.render("admin_system/flashops", {
+						reset_avail   = reset_avail,
+						upgrade_avail = upgrade_avail,
+						co_error      = true,
+						co_error_log  = upgrade_log
+					})
+				end
+			end
 		end
 	elseif reset_avail and luci.http.formvalue("reset") then
 		--

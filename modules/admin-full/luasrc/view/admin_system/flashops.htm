@@ -23,7 +23,15 @@ $Id$
 </ul>
 
 <fieldset class="cbi-section">
-
+	<% if co_error then %>
+		<div class="error">
+			<p><%:There was an error running the upgrade scripts packaged with the new firmware image. It is recommended that you upgrade without saving settings.%><p>
+			<% if co_error_log then %>
+			<p>The upgrade script(s) gave the following output:</p>
+			<p><%=co_error_log%></p>
+			<% end %>
+		</div>
+	<% end %>
 	<fieldset class="cbi-section">
 		<legend><%:Backup / Restore%></legend>
 		<form method="post" action="<%=REQUEST_URI%>" enctype="multipart/form-data">
@@ -69,7 +77,7 @@ $Id$
 					<div class="cbi-value">
 						<label class="cbi-value-title" for="keep"><%:Keep settings%>:</label>
 						<div class="cbi-value-field">
-							<input type="checkbox" name="keep" id="keep" checked="checked" />
+							<input type="checkbox" name="keep" id="keep" checked="checked" onclick="var e=document.getElementById('ignore-version');e.style.display=(e.style.display!='none')?'none':''" />
 						</div>
 					</div>
 					<div class="cbi-value cbi-value-last<% if image_invalid then %> cbi-value-error<% end %>">
