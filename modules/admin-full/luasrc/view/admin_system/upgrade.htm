@@ -16,6 +16,18 @@ $Id$
 <%+header%>
 
 <h2><a id="content" name="content"><%:Flash Firmware%> - <%:Verify%></a></h2>
+
+<% if non_numeric then %>
+	<div class="error"><%:Because this node is currently running a custom-built image, all upgrade scripts in the new image bundle will be run, regardless of version compatibility. This should not cause any problems.%></div>
+<% end %>
+<% if co_valid == 3 then %>
+	<div class="error"><%:An image signing key is not available on the node, so the authenticity of the new image cannot be ensured.%></div>
+<% elseif co_valid == 4 then %>
+	<div class="error"><%:This image was not signed by the Commotion development team's signing key or has an invalid signature. If you did not custom build this image from source, you should abort this upgrade.%></div>
+<% elseif co_valid == 5 then %>
+	<div class="error"><%:This image was not cryptographically signed. If you downloaded this image from the Commotion Wireless website (https://commotionwireless.net), you should abort this upgrade.%></div>
+<% end %>
+
 <p>
 	<%_ The flash image was uploaded.
 		Below is the checksum and file size listed,
