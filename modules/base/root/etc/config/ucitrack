@@ -8,7 +8,7 @@ config wireless
 
 config firewall
 	option init firewall
-	list affects luci-splash
+	list affects luci_splash
 	list affects qos
 	list affects miniupnpd
 
